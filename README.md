@@ -7,11 +7,13 @@ Mario × 에베소서 5:8-10 컨셉의 실시간 멀티기기 미션 게임. 팀
 ## 현재 상태 — 핵심 MVP (에뮬레이터 우선)
 
 구현 완료:
-- **백엔드**: `firestore.rules`(코인 쓰기 서버 전용) + Cloud Functions(`joinTeam`, `submitClear`, `adminAdjust`, `triggerHatch`, `setConfig`, `setAdmin`) + 시드
+- **백엔드**: `firestore.rules`(코인 쓰기 서버 전용) + Cloud Functions(`joinTeam`, `submitClear`, `adminAdjust`, `triggerHatch`, `setConfig`, `setAdmin`, `notify`) + 시드
 - **클라이언트**: 3역할 화면(관리자/팀리더/팀원) + 실시간 `onSnapshot` 구독 + QR 스캔(`html5-qrcode`) + 부화 연출
-- **테스트**: 규칙 단위 테스트(11) + 함수 통합 테스트(9) — 모두 에뮬레이터에서 통과
+- **FCM 푸시**: 관리자 `notify` 콜러블 + `joinTeam` 토픽 구독(`event_all`/`team_*`) + 클라 토큰 발급(`fcm.js`). 로컬/더미 config 에선 자동 비활성, 실제 전송은 실배포에서만(아래 체크리스트).
+- **PWA**: `manifest.json` + 단일 서비스워커(`sw.js`: 앱셸 캐시 + FCM 백그라운드 수신) + 설치/오프라인 셸 + 오리지널 알 아이콘(`public/icons/`)
+- **테스트**: 규칙 단위 테스트(11) + 함수 통합 테스트(11) — 모두 에뮬레이터에서 통과
 
-이번 범위에서 **보류**: FCM 푸시(`notify`), PWA/서비스워커, 오프라인 큐, 90명 부하 테스트, 실배포. (`joinTeam`의 FCM 구독은 시그니처 유지용 no-op 스텁)
+이번 범위에서 **보류**: 오프라인 큐+재시도, 90명 부하 테스트, 실배포. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
 
 ## 사전 준비
 - Node 20+ (개발은 Node 22에서 확인) · Java(에뮬레이터 필수) · 의존성 설치:
@@ -58,3 +60,14 @@ firebase use <your-project>     # Blaze 플랜 필요(Functions)
 firebase deploy --only functions,firestore:rules,hosting
 ```
 배포 시 클라이언트는 자동으로 운영 Firebase에 연결된다(`firebase-init.js` 는 localhost 에서만 에뮬레이터에 붙음). 운영에서는 `public/firebase-init.js` 의 `firebaseConfig` 를 실제 프로젝트 값으로 교체하고, 팀 코드를 랜덤화한다.
+
+### FCM 푸시 + PWA 활성화 체크리스트 (실 프로젝트 필요)
+FCM 웹 푸시는 에뮬레이터로 검증 불가하다(실 Blaze 프로젝트·HTTPS·기기 권한·VAPID 필요). 로컬에선 자동 비활성이며, 아래를 채워야 실제 전송된다.
+
+1. **실 config 교체(두 곳)** — `public/firebase-init.js` 의 `firebaseConfig` 를 실값으로 교체(**`messagingSenderId`·`appId` 포함**). 동일 값을 `public/sw.js` 상단 `firebaseConfig` 에도 **똑같이** 넣는다(서비스워커는 모듈 import 불가라 값 복제).
+2. **VAPID 키** — Firebase Console → 프로젝트 설정 → 클라우드 메시징 → "웹 푸시 인증서" 생성 → 키를 `public/firebase-init.js` 의 `VAPID_KEY` 에 붙여넣는다.
+3. **배포** — `firebase deploy --only functions,firestore:rules,hosting`.
+4. **설치 + 권한** — HTTPS 사이트 접속 → PWA 설치(iOS: 공유 → "홈 화면에 추가", iOS 16.4+ 에서만 웹푸시 동작) → 입장 시 알림 권한 허용 → `members/{uid}.fcmToken` 저장 확인.
+5. **발송 확인** — 관리자 화면 "📣 푸시 발송"(집결/중간집계/커스텀) → 기기에서 포그라운드(`onMessage`)·백그라운드(서비스워커) 수신 확인.
+
+> 아이콘을 바꾸려면 `public/icons/icon.svg` 수정 후 `node scripts/make-icons.js` 재실행(sharp 필요).

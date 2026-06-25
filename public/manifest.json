@@ -1,0 +1,17 @@
+{
+  "name": "깨! · 청년부 수련회 미션",
+  "short_name": "깨!",
+  "description": "잠든 믿음을 깨워라 — 함께 10,000 코인을 모으면 알이 깨집니다.",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14224D",
+  "theme_color": "#14224D",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
