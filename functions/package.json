@@ -1,0 +1,13 @@
+{
+  "name": "functions",
+  "description": "깨! Cloud Functions — 코인 쓰기의 단일 권한 지점 (SPEC §5)",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  }
+}

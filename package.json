@@ -1,0 +1,21 @@
+{
+  "name": "kkae-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "깨! 청년부 수련회 실시간 미션 앱 (Firebase 실시간 멀티기기)",
+  "scripts": {
+    "emu": "firebase emulators:start --project demo-kkae",
+    "seed": "node scripts/seed.js",
+    "grant-admin": "node scripts/grant-admin.js",
+    "test:rules": "firebase emulators:exec --project demo-kkae --only firestore \"node --test tests/rules.test.js\"",
+    "test:functions": "firebase emulators:exec --project demo-kkae \"node --test tests/functions.test.js\"",
+    "test": "npm run test:rules && npm run test:functions"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1",
+    "firebase-admin": "^12.7.0",
+    "firebase-tools": "^13.29.1"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "_comment": "Firestore 시드 데이터. scripts/seed.js 로 주입. 운영 시 team.code 는 랜덤화 권장. EVENT id 는 'main'. startsAt/endsAt 는 운영일에 ISO 문자열로 채우거나 null 유지.",
+  "event": {
+    "id": "main",
+    "goal": 10000,
+    "reward": 15000,
+    "total": 0,
+    "hatched": false,
+    "hatchedAt": null,
+    "allowLeaderSubmit": true,
+    "startsAt": null,
+    "endsAt": null
+  },
+  "teams": [
+    { "id": "t1",  "name": "1팀",  "code": "TEAM1",  "memberCount": 0, "coins": 0 },
+    { "id": "t2",  "name": "2팀",  "code": "TEAM2",  "memberCount": 0, "coins": 0 },
+    { "id": "t3",  "name": "3팀",  "code": "TEAM3",  "memberCount": 0, "coins": 0 },
+    { "id": "t4",  "name": "4팀",  "code": "TEAM4",  "memberCount": 0, "coins": 0 },
+    { "id": "t5",  "name": "5팀",  "code": "TEAM5",  "memberCount": 0, "coins": 0 },
+    { "id": "t6",  "name": "6팀",  "code": "TEAM6",  "memberCount": 0, "coins": 0 },
+    { "id": "t7",  "name": "7팀",  "code": "TEAM7",  "memberCount": 0, "coins": 0 },
+    { "id": "t8",  "name": "8팀",  "code": "TEAM8",  "memberCount": 0, "coins": 0 },
+    { "id": "t9",  "name": "9팀",  "code": "TEAM9",  "memberCount": 0, "coins": 0 },
+    { "id": "t10", "name": "10팀", "code": "TEAM10", "memberCount": 0, "coins": 0 },
+    { "id": "t11", "name": "11팀", "code": "TEAM11", "memberCount": 0, "coins": 0 },
+    { "id": "t12", "name": "12팀", "code": "TEAM12", "memberCount": 0, "coins": 0 }
+  ],
+  "missions": [
+    { "id": "m1",  "world": "말씀의 땅",   "name": "성경 구절 팀 전 외우기",   "coins": 200, "code": "W-MEM",   "type": "comp", "active": true },
+    { "id": "m2",  "world": "말씀의 땅",   "name": "성경 OX 게임",            "coins": 50,  "code": "W-OX",    "type": "comp", "active": true },
+    { "id": "m3",  "world": "말씀의 땅",   "name": "성경 단어 섞기 맞히기",     "coins": 150, "code": "W-MIX",   "type": "comp", "active": true },
+    { "id": "m4",  "world": "말씀의 땅",   "name": "성경 그림 10초 이어그리기", "coins": 100, "code": "W-DRAW",  "type": "part", "active": true },
+    { "id": "m5",  "world": "말씀의 땅",   "name": "십자말풀이",              "coins": 150, "code": "W-CROSS", "type": "quiet", "active": true },
+    { "id": "m6",  "world": "찬양의 하늘", "name": "찬양 가사 맞히기",         "coins": 100, "code": "P-LYR",   "type": "comp", "active": true },
+    { "id": "m7",  "world": "찬양의 하늘", "name": "전주 듣고 찬양 맞히기",     "coins": 50,  "code": "P-INT",   "type": "comp", "active": true },
+    { "id": "m8",  "world": "액션 월드",   "name": "성경 인물 몸으로 말해요",   "coins": 100, "code": "A-BODY",  "type": "comp", "active": true },
+    { "id": "m9",  "world": "액션 월드",   "name": "컬링 — 예수님 품에 가까이", "coins": 100, "code": "A-CURL",  "type": "comp", "active": true },
+    { "id": "m10", "world": "액션 월드",   "name": "높낮이 말하기",            "coins": 50,  "code": "A-TONE",  "type": "part", "active": true },
+    { "id": "m11", "world": "기도의 골방", "name": "기도 카드 / 중보 릴레이",   "coins": 30,  "code": "PR-CARD", "type": "part", "active": true }
+  ]
+}
