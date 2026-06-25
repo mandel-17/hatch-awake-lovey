@@ -11,9 +11,10 @@ Mario × 에베소서 5:8-10 컨셉의 실시간 멀티기기 미션 게임. 팀
 - **클라이언트**: 3역할 화면(관리자/팀리더/팀원) + 실시간 `onSnapshot` 구독 + QR 스캔(`html5-qrcode`) + 부화 연출
 - **FCM 푸시**: 관리자 `notify` 콜러블 + `joinTeam` 토픽 구독(`event_all`/`team_*`) + 클라 토큰 발급(`fcm.js`). 로컬/더미 config 에선 자동 비활성, 실제 전송은 실배포에서만(아래 체크리스트).
 - **PWA**: `manifest.json` + 단일 서비스워커(`sw.js`: 앱셸 캐시 + FCM 백그라운드 수신) + 설치/오프라인 셸 + 오리지널 알 아이콘(`public/icons/`)
-- **테스트**: 규칙 단위 테스트(11) + 함수 통합 테스트(11) — 모두 에뮬레이터에서 통과
+- **오프라인 내성**: 실패한 보고 자동 큐잉·재전송(`public/outbox.js`, clearId 멱등) + Firestore 영속 읽기 캐시
+- **테스트**: 단위(8, outbox) + 규칙(11) + 함수(11) — 모두 통과. 동시성 부하 테스트 `scripts/loadtest.js`(무결성·지연)
 
-이번 범위에서 **보류**: 오프라인 큐+재시도, 90명 부하 테스트, 실배포. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
+이번 범위에서 **보류**: 실배포, UI 폴리시(프로젝터 뷰·QR 이미지·clear 취소). 부하 테스트로 `events.total` 단일 핫 필드의 동시 버스트 처리량 한계를 발견(무결성은 항상 정확, 아웃박스 재시도로 완화) — handoff §2 D. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
 
 ## 사전 준비
 - Node 20+ (개발은 Node 22에서 확인) · Java(에뮬레이터 필수) · 의존성 설치:
@@ -35,9 +36,11 @@ npm run seed           # 다른 터미널에서 시드 주입 (이벤트1·팀12
 
 ## 테스트
 ```bash
+npm run test:unit        # 오프라인 아웃박스 단위 테스트 (에뮬레이터 불필요)
 npm run test:rules       # firestore.rules 단위 테스트
 npm run test:functions   # Cloud Functions 통합 테스트
-npm test                 # 둘 다
+npm test                 # 셋 다 (test:functions 는 hosting 제외 — macOS 포트 5000 회피)
+npm run loadtest         # 동시성 부하 테스트(무결성·지연). 예: N=120 npm run loadtest · CONCURRENCY=10 npm run loadtest
 ```
 
 ## 구조

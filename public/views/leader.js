@@ -24,10 +24,11 @@ async function report(code, ctx) {
   const c = (code || "").trim().toUpperCase();
   if (!c) { ctx.toast("코드를 입력하세요.", "err"); return; }
   try {
-    const d = await ctx.call("submitClear", { teamId: ctx.state.myTeamId, missionCode: c });
+    const d = await ctx.reportClear(ctx.state.myTeamId, c);
     ctx.toast(`✅ ${c} · +${d.coins} 코인!`, "ok");
   } catch (e) {
-    ctx.toast(ctx.mapErr(e), "err");
+    if (e?.queued) ctx.toast(`📡 오프라인 — ${c} 저장됨, 연결되면 자동 전송`, "info", 3800);
+    else ctx.toast(ctx.mapErr(e), "err");
   }
 }
 

@@ -14,6 +14,7 @@ import * as adminView from "./views/admin.js";
 import * as leaderView from "./views/leader.js";
 import * as memberView from "./views/member.js";
 import { setupPush } from "./fcm.js";
+import { createOutbox } from "./outbox.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -75,6 +76,29 @@ function toast(msg, kind = "info", ms = 2600) {
   setTimeout(() => t.remove(), ms);
 }
 
+// ---- 오프라인 아웃박스 (submitClear 재시도) ----
+const outbox = createOutbox({ call, onChange: (n) => updateOutboxBadge(n) });
+function reportClear(teamId, missionCode) { return outbox.report(teamId, missionCode); }
+function updateOutboxBadge(n) {
+  const count = typeof n === "number" ? n : outbox.count();
+  let el = document.getElementById("outbox-badge");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "outbox-badge";
+    el.style.cssText =
+      "position:fixed;left:12px;bottom:12px;z-index:50;background:var(--mario,#E5392C);color:#fff;font-weight:800;padding:8px 12px;border:3px solid var(--space,#14224D);border-radius:10px;box-shadow:4px 4px 0 rgba(20,34,77,1);font-size:13px;max-width:72vw";
+    document.body.appendChild(el);
+  }
+  el.textContent = count > 0 ? `📡 미전송 ${count}건 · 연결되면 자동 전송` : "";
+  el.style.display = count > 0 ? "block" : "none";
+}
+async function flushOutbox() {
+  const r = await outbox.flush();
+  if (r.sent) toast(`오프라인 보고 ${r.sent}건 자동 전송됨`, "ok");
+  return r;
+}
+window.addEventListener("online", flushOutbox);
+
 function teamCardHTML() {
   const idx = state.teams.findIndex((t) => t.id === state.myTeamId);
   const team = idx >= 0 ? state.teams[idx] : null;
@@ -88,7 +112,7 @@ function teamCardHTML() {
   </div>`;
 }
 
-const ctx = { state, call, toast, mapErr, leave, teamCardHTML, WORLD_ORDER };
+const ctx = { state, call, reportClear, toast, mapErr, leave, teamCardHTML, WORLD_ORDER };
 
 // ---- 렌더 갱신 (스냅샷마다 호출; 정적 구조는 건드리지 않음) ----
 function refresh() {
@@ -298,6 +322,8 @@ function boot() {
   onAuthStateChanged(auth, async (user) => {
     if (!user) { signInAnonymously(auth).catch((e) => toast("인증 실패: " + e.message, "err")); return; }
     state.uid = user.uid;
+    flushOutbox().catch(() => {}); // 이전 세션에서 큐에 남은 오프라인 보고 재전송
+    updateOutboxBadge();
     const session = loadSession();
     if (session?.role) {
       const ok = await resume(session).catch(() => false);
