@@ -24,6 +24,18 @@ export function mount(root, ctx) {
      </div>
 
      <div class="panel">
+       <h2>📣 푸시 발송</h2>
+       <div class="row">
+         <button class="btn btn-leaf" id="push-gather">집결 알림</button>
+         <button class="btn btn-leaf" id="push-progress">중간 집계</button>
+       </div>
+       <label class="field" style="margin-top:10px">제목<input id="push-title" placeholder="알림 제목" autocomplete="off" /></label>
+       <label class="field">내용<input id="push-body" placeholder="알림 내용" autocomplete="off" /></label>
+       <button class="btn btn-ink btn-block" id="push-send">전체에게 보내기</button>
+       <div class="note" style="margin-top:8px">전체(event_all) 토픽으로 발송됩니다. 실 배포 환경에서만 실제 전송됩니다.</div>
+     </div>
+
+     <div class="panel">
        <h2>🪙 코인 입력 (대리 보고)</h2>
        <label class="field">팀<select id="m-team"></select></label>
        <label class="field">미션<select id="m-mission"></select></label>
@@ -59,6 +71,26 @@ export function mount(root, ctx) {
       ctx.toast(d.already ? "이미 부화했습니다." : "🐣 부화 트리거!", "ok");
     } catch (e) { ctx.toast(ctx.mapErr(e), "err"); }
   });
+
+  async function sendPush(title, body) {
+    if (!title || !body) { ctx.toast("제목과 내용을 입력하세요.", "err"); return; }
+    try {
+      await ctx.call("notify", { topic: "event_all", title, body });
+      ctx.toast("📣 푸시를 발송했습니다.", "ok");
+    } catch (e) { ctx.toast(ctx.mapErr(e), "err"); }
+  }
+  root.querySelector("#push-gather").addEventListener("click", () =>
+    sendPush("📣 집결!", "모두 본부로 모여주세요."));
+  root.querySelector("#push-progress").addEventListener("click", () => {
+    const total = ctx.state.event?.total ?? 0;
+    const goal = ctx.state.event?.goal ?? 10000;
+    sendPush("📊 중간 집계", `현재 ${fmt(total)} / ${fmt(goal)} 코인! 함께 알을 깨요.`);
+  });
+  root.querySelector("#push-send").addEventListener("click", () =>
+    sendPush(
+      root.querySelector("#push-title").value.trim(),
+      root.querySelector("#push-body").value.trim()
+    ));
 
   root.querySelector("#m-report").addEventListener("click", async () => {
     const teamId = root.querySelector("#m-team").value;

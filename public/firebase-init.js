@@ -6,11 +6,19 @@ import { getFirestore, connectFirestoreEmulator } from "./vendor/firebase/fireba
 import { getFunctions, connectFunctionsEmulator } from "./vendor/firebase/firebase-functions.js";
 
 // 에뮬레이터/데모 프로젝트라 실 키는 필요 없다(값은 더미).
-const firebaseConfig = {
+// ⚠️ 실 배포(FCM 사용) 시: 아래 firebaseConfig 를 실 프로젝트 값으로 통째 교체하고
+//    (messagingSenderId·appId 포함), public/sw.js 의 동일 config 도 함께 교체할 것.
+export const firebaseConfig = {
   projectId: "demo-kkae",
   apiKey: "demo-key",
   authDomain: "demo-kkae.firebaseapp.com",
+  // messagingSenderId: "…",  // FCM 필수 (실 배포 시 채움)
+  // appId: "…",              // FCM 필수 (실 배포 시 채움)
 };
+
+// 웹 푸시 VAPID 키. ⚠️ 실 배포 시 Firebase Console > 프로젝트 설정 > 클라우드 메시징 >
+// 웹 푸시 인증서(웹 구성)에서 생성한 키를 붙여넣는다. 비어 있으면 FCM 은 자동 비활성(로컬 안전).
+export const VAPID_KEY = "";
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

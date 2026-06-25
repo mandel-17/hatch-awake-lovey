@@ -11,6 +11,7 @@ const { setGlobalOptions } = require("firebase-functions/v2");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
+const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
 const db = getFirestore();
@@ -71,7 +72,15 @@ exports.joinTeam = onCall(async (request) => {
     if (isNew) tx.update(teamRef(teamId), { memberCount: FieldValue.increment(1) });
   });
 
-  // TODO FCM: event_all, team_{teamId} 토픽 구독 (이번 MVP 보류)
+  // FCM 토픽 구독: 토큰이 있을 때만. 에뮬레이터엔 FCM 백엔드가 없어 throw 하므로
+  // try/catch 로 감싸 입장(joinTeam)을 절대 막지 않는다.
+  if (fcmToken) {
+    try {
+      await getMessaging().subscribeToTopic(fcmToken, ["event_all", "team_" + teamId]);
+    } catch (e) {
+      console.warn("FCM subscribeToTopic skipped:", e?.message || e);
+    }
+  }
   return { teamId, teamName };
 });
 
@@ -216,6 +225,30 @@ exports.setConfig = onCall(async (request) => {
   }
   await eventRef().update(patch);
   return { ok: true, patch };
+});
+
+/**
+ * notify({ topic?, title, body }) -> { ok, id }
+ * 관리자 전용. 토픽 푸시 발송(기본 event_all). title/body 필수.
+ * 주의: 에뮬레이터엔 FCM 백엔드가 없어 send 가 실패한다 → 실 배포에서만 실제 전송된다.
+ * (인증·인자 가드는 send 이전이라 에뮬레이터 테스트로 검증 가능.)
+ */
+exports.notify = onCall(async (request) => {
+  requireAdmin(request);
+  const { topic, title, body } = request.data || {};
+  if (!title || !body) {
+    throw new HttpsError("invalid-argument", "제목과 내용이 필요합니다.");
+  }
+  const t = String(topic || "event_all").trim();
+  try {
+    const id = await getMessaging().send({
+      topic: t,
+      notification: { title: String(title), body: String(body) },
+    });
+    return { ok: true, id };
+  } catch (e) {
+    throw new HttpsError("internal", "푸시 전송 실패: " + (e?.message || "알 수 없는 오류"));
+  }
 });
 
 /**

@@ -13,6 +13,7 @@ import { communalHTML, leaderboardHTML, checklistHTML, playHatch, esc, fmt } fro
 import * as adminView from "./views/admin.js";
 import * as leaderView from "./views/leader.js";
 import * as memberView from "./views/member.js";
+import { setupPush } from "./fcm.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -38,6 +39,16 @@ const state = {
 
 let activeView = null;
 let unsubs = [];
+let swRegistration = null;
+
+// 포그라운드 푸시 수신 → 토스트
+function onPushForeground(title, body) {
+  toast(`📣 ${title || "알림"}${body ? " · " + body : ""}`, "info", 4000);
+}
+// 입장 시 알림 권한/토큰 시도(로컬·미설정 환경에선 null). 입장을 막지 않도록 항상 안전.
+function getPushToken() {
+  return setupPush(swRegistration, onPushForeground).catch(() => null);
+}
 
 // ---- 콜러블 / 토스트 / 에러 ----
 const ERR = {
@@ -199,7 +210,8 @@ function joinForm(role) {
     if (!code || !name) { toast("팀 코드와 이름을 입력하세요.", "err"); return; }
     $("#f-go").disabled = true;
     try {
-      const d = await call("joinTeam", { code, name });
+      const fcmToken = await getPushToken();
+      const d = await call("joinTeam", { code, name, fcmToken });
       saveSession({ role, teamId: d.teamId, teamName: d.teamName, name, code });
       state.role = role; state.myTeamId = d.teamId; state.myTeamName = d.teamName; state.myName = name;
       toast(`${d.teamName} 입장 완료!`, "ok");
@@ -270,7 +282,8 @@ async function resume(session) {
   if ((session.role === "leader" || session.role === "member") && session.code && session.name) {
     // 멱등 재입장으로 members/{uid} 보장 (에뮬레이터 데이터 리셋 대비)
     try {
-      const d = await call("joinTeam", { code: session.code, name: session.name });
+      const fcmToken = await getPushToken();
+      const d = await call("joinTeam", { code: session.code, name: session.name, fcmToken });
       state.role = session.role; state.myTeamId = d.teamId; state.myTeamName = d.teamName; state.myName = session.name;
       await startRole();
       return true;
@@ -295,4 +308,14 @@ function boot() {
   });
 }
 
+// 서비스워커 등록(PWA 앱셸 + FCM 백그라운드). 127.0.0.1 에서도 동작하므로 로컬 포함 등록.
+function registerSW() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker
+    .register("/sw.js")
+    .then((reg) => { swRegistration = reg; })
+    .catch(() => {});
+}
+
+registerSW();
 boot();

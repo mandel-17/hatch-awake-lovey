@@ -8,10 +8,11 @@
 
 **에뮬레이터 우선 / 코드만** 으로 핵심 MVP를 완성하고 전부 검증했다.
 
-- **백엔드** — `firestore.rules`(coins/total/clears/adjustments 클라 쓰기 `if false`), Cloud Functions 6종:
-  `joinTeam` · `submitClear`(결정적 `clearId`·트랜잭션·`increment`·`allowLeaderSubmit` 가드) · `adminAdjust`(+`adjustments` 감사로그) · `triggerHatch`(목표 가드·멱등) · `setConfig` · `setAdmin`(부트스트랩 코드).
+- **백엔드** — `firestore.rules`(coins/total/clears/adjustments 클라 쓰기 `if false`), Cloud Functions 7종:
+  `joinTeam`(+FCM 토픽 구독) · `submitClear`(결정적 `clearId`·트랜잭션·`increment`·`allowLeaderSubmit` 가드) · `adminAdjust`(+`adjustments` 감사로그) · `triggerHatch`(목표 가드·멱등) · `setConfig` · `setAdmin`(부트스트랩 코드) · `notify`(관리자 토픽 푸시).
 - **클라이언트** — 3역할 화면(`public/views/{admin,leader,member}.js`), 공용 렌더(`shared.js`: communal/eggSVG/leaderboard/checklist/playHatch), 실시간 `onSnapshot` 구독(`app.js`), QR 스캔(`html5-qrcode`), 다크→빛 부화 연출.
-- **테스트** — 규칙 11/11, 함수 9/9 통과. Playwright 2탭 E2E(보고→교차탭 반영→중복 거부→부화 동시 연출) 통과.
+- **FCM + PWA** (이번 빌드 추가) — `fcm.js`(권한·토큰, 로컬/더미선 자동 비활성) → `joinTeam(fcmToken)`; `notify` + 관리자 "📣 푸시 발송" 패널(집결/중간집계/커스텀). `manifest.json` + 단일 `sw.js`(앱셸 캐시 + compat importScripts FCM 백그라운드) + 오리지널 알 아이콘(`public/icons/`). 메시징 SDK는 `firebase@10.14.1`에서 `public/vendor/firebase/`로 벤더링(모듈러 1 + compat 2).
+- **테스트** — 규칙 11/11, 함수 11/11 통과(notify 가드 2건 추가). 브라우저 검증(에뮬레이터+정적서빙): SW 등록·활성, manifest 유효, 모듈 로드, FCM 게이트, 푸시 패널 렌더·`notify` 호출까지 확인. *Playwright 2탭 E2E는 이 빌드에서 재실행 안 함(hosting:5000을 macOS AirPlay가 점유).*
 
 검증 명령: `npm test` / `npm run emu` + `npm run seed`.
 
@@ -19,17 +20,11 @@
 
 ## 2. 보류된 작업 (다음 단계, 우선순위 순)
 
-### A. FCM 푸시 (`notify` + 토픽 구독) — SPEC §9
-- `functions/index.js` 에 `notify({topic,title,body})`(관리자 전용) 추가 → `admin.messaging().send({topic,...})`.
-- `joinTeam` 의 `// TODO FCM` 자리에서 `admin.messaging().subscribeToTopic(fcmToken, ['event_all', 'team_'+teamId])` 활성화. (지금은 fcmToken 을 members 에 저장만 함.)
-- 클라: `firebase-messaging.js`(벤더 추가 필요 — `node_modules/firebase/firebase-messaging.js` 를 `public/vendor/firebase/` 로 복사 후 gstatic 절대 import 를 `./firebase-app.js` 로 치환, 기존 벤더링과 동일 방식), `getToken(messaging,{vapidKey})` 로 토큰 받아 `joinTeam` 에 전달.
-- **주의**: 웹푸시는 PWA 설치 + HTTPS + 사용자 권한 필요. iOS 는 홈화면 설치 후에만 동작. 에뮬레이터로는 실제 푸시 검증 불가 → 실 프로젝트에서 테스트.
-- 관리자 UI(A5)에 발송 버튼(집결/중간집계) 추가.
+### ✅ A. FCM 푸시 — 완료 (이번 빌드)
+`notify({topic,title,body})`(관리자 전용, `getMessaging().send`) 추가, `joinTeam` 토픽 구독(`subscribeToTopic`, 토큰 있을 때만·try/catch 로 입장 비차단) 활성화, 클라 `fcm.js`(`getToken({vapidKey, serviceWorkerRegistration})`, 로컬/더미선 자동 비활성) + 관리자 "📣 푸시 발송" 패널(집결/중간집계/커스텀). 메시징 SDK 벤더링 완료(모듈러 `firebase-messaging.js` + compat 2종). **실제 전송은 실 프로젝트 필요** — `README.md`의 "FCM 푸시 + PWA 활성화 체크리스트"(실 config 두 곳 + VAPID) 참조.
 
-### B. PWA (설치 + 오프라인 셸) — SPEC §9
-- `public/manifest.json`(name/icons/display:standalone/theme_color `#14224D`), `public/sw.js`(앱 셸 + 벤더 캐시), `index.html` 에 `<link rel="manifest">` + 서비스워커 등록.
-- 아이콘은 팔레트 기반 오리지널 도형(닌텐도 자산 금지). 알 이모지 파비콘은 이미 인라인으로 있음.
-- FCM 백그라운드 수신은 `firebase-messaging-sw.js` 필요.
+### ✅ B. PWA — 완료 (이번 빌드)
+`manifest.json`(standalone/theme `#14224D`/아이콘 3) + **단일 `sw.js`**(앱셸 stale-while-revalidate 캐시 + compat importScripts FCM 백그라운드) + `index.html` manifest/apple-touch/PWA 메타 + `public/icons/`(오리지널 알, `scripts/make-icons.js`로 생성, sharp). 별도 `firebase-messaging-sw.js` 대신 `sw.js` 하나로 통합(루트 스코프 충돌 회피, `getToken`에 registration 전달).
 
 ### C. 오프라인 큐 + 재시도 — SPEC §11
 - `submitClear` 는 이미 `clearId` 로 멱등이라 재시도 안전. 클라에서 실패한 보고를 `localStorage` 큐에 넣고 온라인 복귀 시 재전송.
@@ -65,6 +60,8 @@
 - **FieldValue 모듈러 import 필수**: Functions 에뮬레이터가 `admin.firestore` 네임스페이스를 래핑해 `admin.firestore.FieldValue` 가 런타임에 `undefined` 가 됨. 반드시 `const { getFirestore, FieldValue } = require("firebase-admin/firestore")` 모듈러 import 사용(이미 적용). standalone 스크립트(seed 등)에선 네임스페이스 접근도 동작함.
 - **IPv6 `::1` 경고**: 에뮬레이터가 `::1` 바인딩 실패 경고를 내지만 `127.0.0.1` 은 정상. 클라(`firebase-init.js`)·스크립트는 `127.0.0.1` 사용으로 회피. `localhost` 가 `::1` 로 풀리는 환경 주의.
 - **작업 디렉터리**: `npm run test:*` 와 `emulators:exec` 는 repo 루트(`firebase.json` 위치)에서 실행해야 함.
+- **Java 필요(에뮬레이터)**: 없으면 `java -version` 이 설치 안내만 출력. macOS: `brew install openjdk` 후 PATH 앞에 `/opt/homebrew/opt/openjdk/bin` 추가(keg-only). 예: `export PATH="/opt/homebrew/opt/openjdk/bin:$PATH" && npm test`.
+- **macOS 포트 5000 = AirPlay**: hosting 에뮬레이터가 `5000` 바인딩 실패하면 ControlCenter(AirPlay 수신기)가 점유 중. 시스템 설정 > 일반 > AirDrop·Handoff > "AirPlay 수신 모드" 끄거나, 함수 테스트는 hosting 없이 `firebase emulators:exec --only auth,functions,firestore "..."` 로 실행(함수 테스트는 hosting 불필요).
 - **샌드박스 폰트**: 헤드리스 브라우저가 외부 폰트를 못 받아 스크린샷이 시스템 폰트로 보임. 실기기에선 Do Hyeon 등 웹폰트 정상.
 - **테스트 격리**: 함수 테스트는 매 케이스마다 Firestore+Auth 를 REST 로 클리어(`/emulator/v1/...`). 규칙·함수 테스트를 별도 emulator 인스턴스로 실행(`npm test` 가 순차 실행).
 
@@ -92,5 +89,8 @@ npm run seed                   # 시드 (또는 --total=10000 로 부화 데모)
 | 공용 렌더(알·게이지·리더보드·체크리스트·부화) | `public/views/shared.js` |
 | 역할 화면 | `public/views/{admin,leader,member}.js` |
 | 디자인 토큰·컴포넌트 | `public/styles.css` |
+| FCM 토큰·권한(클라) | `public/fcm.js`, `public/firebase-init.js`(`VAPID_KEY`) |
+| 서비스워커(앱셸+FCM 백그라운드) | `public/sw.js` |
+| PWA 매니페스트·아이콘 | `public/manifest.json`, `public/icons/`, `scripts/make-icons.js` |
 | 미션/팀/이벤트 데이터 | `data/seed.json` |
 | 에뮬레이터/호스팅 설정 | `firebase.json`, `.firebaserc` |

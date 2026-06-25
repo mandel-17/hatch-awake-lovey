@@ -228,3 +228,19 @@ test("joinTeam: 팀 코드로 입장, 잘못된 코드는 거부", async () => {
 
   await expectError(call("joinTeam", { code: "BADCODE", name: "x" }), "not-found");
 });
+
+test("notify: 비관리자는 거부(permission-denied)", async () => {
+  await seedData(0);
+  await signInMember("t1");
+  await expectError(
+    call("notify", { topic: "event_all", title: "집결", body: "본부로" }),
+    "permission-denied"
+  );
+});
+
+test("notify: 관리자라도 title/body 누락이면 invalid-argument (전송 이전 가드)", async () => {
+  await seedData(0);
+  await signInAdmin();
+  await expectError(call("notify", { title: "제목만" }), "invalid-argument");
+  await expectError(call("notify", { body: "내용만" }), "invalid-argument");
+});

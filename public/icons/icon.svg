@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="깨! 알 아이콘">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#1C2E63"/>
+      <stop offset="60%" stop-color="#14224D"/>
+      <stop offset="100%" stop-color="#0E1A3A"/>
+    </radialGradient>
+    <linearGradient id="egg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="55%" stop-color="#EAF6FF"/>
+      <stop offset="100%" stop-color="#D4E6FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- 알 (요시의 알 모티프 — 팔레트 색, 오리지널 도형) -->
+  <path d="M256 150 C 312 150 351 232 351 296 C 351 356 309 398 256 398 C 203 398 161 356 161 296 C 161 232 200 150 256 150 Z"
+        fill="url(#egg)" stroke="#14224D" stroke-width="14"/>
+  <!-- 깨짐(금) — 번개 모양 -->
+  <path d="M250 165 L270 248 L236 286 L268 330 L246 392"
+        fill="none" stroke="#F6C92E" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- 빛 스파클 -->
+  <path d="M330 196 l10 24 24 10 -24 10 -10 24 -10 -24 -24 -10 24 -10 z" fill="#F6C92E"/>
+</svg>
