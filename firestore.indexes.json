@@ -1,0 +1,5 @@
+{
+  "_comment": "MVP 쿼리(clears where teamId==, teams orderBy coins desc, clears orderBy ts desc)는 모두 단일필드 자동 인덱스로 충족되어 복합 인덱스가 필요 없습니다.",
+  "indexes": [],
+  "fieldOverrides": []
+}

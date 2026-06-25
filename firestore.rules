@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// 깨! 보안 규칙 (SPEC §6)
+// 절대 규칙: 코인에 영향 주는 모든 쓰기(teams.coins, events.total, clears, adjustments)는
+// 클라이언트 금지(write: if false). 오직 Cloud Functions(Admin SDK)만 적립한다.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(u) { return signedIn() && request.auth.uid == u; }
+    function isAdmin()  { return signedIn() && request.auth.token.admin == true; }
+
+    // 읽기는 로그인 사용자 전체, 쓰기는 함수(Admin SDK)만.
+    match /events/{e}      { allow read: if signedIn(); allow write: if false; }
+    match /teams/{t}       { allow read: if signedIn(); allow write: if false; }
+    match /missions/{m}    { allow read: if signedIn(); allow write: if false; }
+    match /clears/{c}      { allow read: if signedIn(); allow write: if false; }
+
+    // 감사 로그(수동 가감/취소). 관리자만 조회, 쓰기는 함수만.
+    match /adjustments/{a} { allow read: if isAdmin();  allow write: if false; }
+
+    // 멤버: 본인 또는 관리자만 읽기. 생성/수정은 본인만(실 생성은 joinTeam 함수 경로).
+    match /members/{u} {
+      allow read:   if isOwner(u) || isAdmin();
+      allow create: if isOwner(u);
+      allow update: if isOwner(u);
+      allow delete: if false;
+    }
+  }
+}
