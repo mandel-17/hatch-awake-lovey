@@ -13,9 +13,10 @@ Mario × 에베소서 5:8-10 컨셉의 실시간 멀티기기 미션 게임. 팀
 - **PWA**: `manifest.json` + 단일 서비스워커(`sw.js`: 앱셸 캐시 + FCM 백그라운드 수신) + 설치/오프라인 셸 + 오리지널 알 아이콘(`public/icons/`)
 - **오프라인 내성**: 실패한 보고 자동 큐잉·재전송(`public/outbox.js`, clearId 멱등) + Firestore 영속 읽기 캐시
 - **프로젝터 송출**: 관리자 → 🖥 풀스크린 송출 뷰(`views/projector.js`, 컨트롤 없이 공동합산+TOP3+부화)
-- **테스트**: 단위(8, outbox) + 규칙(11) + 함수(11) — 모두 통과. 동시성 부하 테스트 `scripts/loadtest.js`(무결성·지연)
+- **테스트**: 단위(14: outbox 8 + QR 6) + 규칙(11) + 함수(11) — 모두 통과. 동시성 부하 테스트 `scripts/loadtest.js`(무결성·지연)
+- **스테이션 QR 인쇄**: 관리자 "스테이션 코드" 패널에 미션별 QR 썸네일 + "🖨 인쇄용 QR 시트"(스테이션당 A4 1장). QR = `?scan=<CODE>` URL(리더 스캔 시 코드 자동 인식)
 
-**잔여**: 실배포 실행(준비·런북은 완료 — `DEPLOY.md`), UI 폴리시(QR 이미지·clear 취소; 프로젝터 송출 뷰는 완료). 부하 테스트로 `events.total` 단일 핫 필드의 동시 버스트 처리량 한계를 발견(무결성은 항상 정확, 아웃박스 재시도로 완화) — handoff §2 D. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
+**잔여**: 실배포 실행(준비·런북은 완료 — `DEPLOY.md`), UI 폴리시(clear 취소; QR 이미지·프로젝터 송출 뷰는 완료). 부하 테스트로 `events.total` 단일 핫 필드의 동시 버스트 처리량 한계를 발견(무결성은 항상 정확, 아웃박스 재시도로 완화) — handoff §2 D. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
 
 ## 사전 준비
 - Node 20+ (개발은 Node 22에서 확인) · Java(에뮬레이터 필수) · 의존성 설치:
@@ -52,9 +53,9 @@ public/                   # 클라이언트 (Hosting)
   index.html  app.js  firebase-init.js  styles.css
   fcm.js  sw.js  outbox.js  manifest.json  icons/
   views/{shared,admin,leader,member,projector}.js
-  vendor/                 # 벤더링된 Firebase SDK ESM(+compat) + html5-qrcode (CDN 차단 대응)
+  vendor/                 # 벤더링된 Firebase SDK ESM(+compat) + html5-qrcode(스캔) + qrcode-generator(생성) (CDN 차단 대응)
 scripts/{seed,grant-admin,gen-prod-seed,loadtest,make-icons}.js
-data/seed.json  tests/{rules,functions,outbox}.test.js
+data/seed.json  tests/{rules,functions,outbox,qr}.test.js
 DEPLOY.md                 # 실배포 단계별 런북
 ```
 

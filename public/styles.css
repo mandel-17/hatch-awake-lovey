@@ -171,3 +171,34 @@ input:focus,select:focus,.btn:focus-visible{ outline:3px solid var(--sky); outli
 .proj-top .medal{ font-size:clamp(28px,4vw,48px); }
 .proj-top .pname{ flex:1; text-align:left; font-weight:900; font-size:clamp(20px,3vw,40px); }
 .proj-top .pcoin{ font-family:"Do Hyeon"; font-size:clamp(24px,3.6vw,48px); color:var(--star); }
+
+/* ---- 스테이션 QR (관리자 썸네일) ---- */
+.qr-thumb{ width:54px; height:54px; flex:0 0 auto; border:var(--bd) solid var(--space); border-radius:var(--r-sm); background:#fff; padding:3px; }
+.qr-thumb svg{ display:block; width:100%; height:100%; }
+
+/* ---- 인쇄용 QR 시트 (스테이션당 A4 1장) ---- */
+.qr-sheet{ display:none; }              /* 화면에선 숨김 */
+.qr-page{ box-sizing:border-box; }
+.qp-world{ font-family:"Press Start 2P",monospace; font-size:14px; color:var(--mario); letter-spacing:1px; }
+.qp-name{ font-family:"Do Hyeon",system-ui; font-size:34px; margin:6px 0 14px; }
+.qp-qr{ width:80mm; height:80mm; margin:0 auto; }
+.qp-qr svg{ display:block; width:100%; height:100%; }
+.qp-code{ font-family:"JetBrains Mono",monospace; font-size:40px; font-weight:800; letter-spacing:2px; margin-top:14px; }
+.qp-coin{ font-family:"Do Hyeon",system-ui; font-size:24px; color:var(--star-deep); margin-top:4px; }
+.qp-hint{ font-size:14px; color:var(--ink-soft); margin-top:18px; }
+
+@media print{
+  /* 화면 UI·오버레이 숨기고 인쇄 시트만 */
+  .app, #toasts, #outbox-badge, #hatch{ display:none !important; }
+  .qr-sheet{ display:block; }
+  .qr-page{
+    width:100%; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24mm 16mm;
+    page-break-after:always; break-after:page;
+  }
+  .qr-page:last-child{ page-break-after:auto; break-after:auto; }
+  /* QR은 흑백 고정이라 무관하지만, 장식색 보존 */
+  .qp-world, .qp-coin{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+@page{ size:A4 portrait; margin:0; }

@@ -1,5 +1,5 @@
 // 팀 리더(L) 화면 — 우리 팀 홈 + 미션 보고(QR 스캔/코드 입력) + 체크리스트.
-import { topbarHTML } from "./shared.js";
+import { topbarHTML, extractCode } from "./shared.js";
 
 let scanner = null;
 
@@ -8,16 +8,6 @@ function setScanButtons(scanning) {
   const stop = document.getElementById("scan-stop");
   if (start) start.classList.toggle("hidden", scanning);
   if (stop) stop.classList.toggle("hidden", !scanning);
-}
-
-function extractCode(text) {
-  // ?scan=W-OX 링크면 쿼리 파싱, 아니면 원문.
-  try {
-    const u = new URL(text);
-    const q = u.searchParams.get("scan");
-    if (q) return q;
-  } catch (_) {}
-  return text;
 }
 
 async function report(code, ctx) {
