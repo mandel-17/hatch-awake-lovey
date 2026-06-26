@@ -256,9 +256,14 @@ exports.notify = onCall(async (request) => {
  * 부트스트랩 코드(env ADMIN_BOOTSTRAP, 기본 'KKAE-ADMIN')로 관리자 클레임 부여.
  * 클레임 부여 후 클라는 getIdToken(true) 로 토큰 강제 갱신해야 한다.
  */
-exports.setAdmin = onCall(async (request) => {
+// 운영에서만 Secret Manager 의 ADMIN_BOOTSTRAP 을 바인딩한다. 에뮬레이터에서 secrets 를 선언하면
+// 함수 디스커버리가 시크릿을 못 찾아 "Cannot determine backend specification" 타임아웃이 나므로,
+// FUNCTIONS_EMULATOR 환경에선 선언하지 않고 아래 기본값으로 폴백한다(운영 배포 시에만 시크릿 주입).
+const setAdminOpts = process.env.FUNCTIONS_EMULATOR ? {} : { secrets: ["ADMIN_BOOTSTRAP"] };
+exports.setAdmin = onCall(setAdminOpts, async (request) => {
   const auth = requireAuth(request);
   const { bootstrapCode, targetUid } = request.data || {};
+  // 운영: 시크릿 주입값. 에뮬레이터/미설정: 기본값 폴백.
   const expected = process.env.ADMIN_BOOTSTRAP || "KKAE-ADMIN";
   if (!bootstrapCode || String(bootstrapCode) !== expected) {
     throw new HttpsError("permission-denied", "관리자 코드가 올바르지 않습니다.");

@@ -56,6 +56,8 @@ data/seed.json  tests/{rules,functions}.test.js
 ```
 
 ## 실배포 (추후, 사용자 환경에서)
+> 📖 **전체 단계별 절차는 [`DEPLOY.md`](DEPLOY.md) 런북 참조** (프로젝트 연결 · FCM/PWA · 관리자 시크릿 · 운영 시드 · 배포 · 스모크 점검).
+
 원격 컨테이너에서는 `firebase login/deploy` 불가. 로컬/실 환경에서:
 ```bash
 firebase login
