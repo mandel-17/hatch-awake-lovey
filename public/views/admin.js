@@ -20,6 +20,9 @@ export function mount(root, ctx) {
          <button class="btn" id="toggle-btn">팀 직접 보고: …</button>
          <button class="btn btn-red btn-lg" id="hatch-btn" disabled>🥚 부화</button>
        </div>
+       <div class="row" style="margin-top:8px">
+         <button class="btn btn-block" id="projector-btn">🖥 프로젝터 송출 (풀스크린)</button>
+       </div>
        <div class="note" style="margin-top:10px">부화는 공동 합산이 목표에 도달해야 활성화됩니다.</div>
      </div>
 
@@ -71,6 +74,8 @@ export function mount(root, ctx) {
       ctx.toast(d.already ? "이미 부화했습니다." : "🐣 부화 트리거!", "ok");
     } catch (e) { ctx.toast(ctx.mapErr(e), "err"); }
   });
+
+  root.querySelector("#projector-btn").addEventListener("click", () => ctx.enterProjector());
 
   async function sendPush(title, body) {
     if (!title || !body) { ctx.toast("제목과 내용을 입력하세요.", "err"); return; }
