@@ -13,6 +13,7 @@ import { communalHTML, leaderboardHTML, checklistHTML, playHatch, esc, fmt } fro
 import * as adminView from "./views/admin.js";
 import * as leaderView from "./views/leader.js";
 import * as memberView from "./views/member.js";
+import * as projectorView from "./views/projector.js";
 import { setupPush } from "./fcm.js";
 import { createOutbox } from "./outbox.js";
 
@@ -112,7 +113,16 @@ function teamCardHTML() {
   </div>`;
 }
 
-const ctx = { state, call, reportClear, toast, mapErr, leave, teamCardHTML, WORLD_ORDER };
+const ctx = { state, call, reportClear, toast, mapErr, leave, teamCardHTML, WORLD_ORDER, enterProjector, exitProjector };
+
+// 뷰 전환(구독 유지). 관리자 ↔ 프로젝터 송출.
+function switchView(view) {
+  activeView = view;
+  view.mount($("#app"), ctx);
+  refresh();
+}
+function enterProjector() { switchView(projectorView); }
+function exitProjector() { switchView(adminView); }
 
 // ---- 렌더 갱신 (스냅샷마다 호출; 정적 구조는 건드리지 않음) ----
 function refresh() {

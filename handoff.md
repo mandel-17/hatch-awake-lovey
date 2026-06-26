@@ -43,10 +43,10 @@
 - 원격 컨테이너에선 불가. 실 환경에서 `firebase login` → Blaze 프로젝트 → `public/firebase-init.js` 의 `firebaseConfig` 를 실값으로 교체 → `firebase deploy`.
 - 운영 시: 팀 코드 랜덤화(`data/seed.json`), `ADMIN_BOOTSTRAP` 를 시크릿으로 설정, `seed.json` 의 `startsAt/endsAt` 실제 일시 입력.
 
-### F. 잔여 UI 폴리시 (선택)
-- 관리자 A2 **프로젝터 풀스크린 뷰**(컨트롤 없이 communal+상위3팀, 부화 송출) — 현재 미구현.
-- A4 스테이션 **QR 이미지 생성/인쇄**(현재 코드 텍스트만). 오프라인 QR 생성 라이브러리 벤더링 필요.
-- "마지막 취소"(clear 되돌리기) — 현재는 `adminAdjust` 음수 가감으로 보정. 진짜 undo 는 clear 삭제+감액 트랜잭션 추가 필요.
+### F. 잔여 UI 폴리시 (일부 완료)
+- ✅ 관리자 **프로젝터 풀스크린 송출 뷰**(`views/projector.js`, 이번 빌드) — 컨트롤 없이 공동합산+TOP3+부화. 관리자 "🖥 프로젝터 송출" → `ctx.enterProjector()`(구독 유지 뷰 전환, `exitProjector`로 복귀). 부화 연출(#hatch, z-80)이 위로 덮여 함께 송출됨.
+- ⏸️ A4 스테이션 **QR 이미지 생성/인쇄** — 미구현. `qrcode` 벤더링 후 admin 코드 패널에 `?scan=<CODE>` QR 추가(리더 스캐너 extractCode 가 이미 `?scan=` 파싱).
+- ⏸️ **clear 진짜 취소** — 미구현. 현재는 `adminAdjust` 음수 보정. 진짜 undo 는 clear 삭제+감액 트랜잭션 필요(코인 쓰기→함수에서만) → "절대 규칙"·샤딩과 함께 결정 권장.
 
 ---
 
@@ -100,5 +100,6 @@ npm run seed                   # 시드 (또는 --total=10000 로 부화 데모)
 | PWA 매니페스트·아이콘 | `public/manifest.json`, `public/icons/`, `scripts/make-icons.js` |
 | 오프라인 큐(실패 보고 재시도) | `public/outbox.js` (단위테스트 `tests/outbox.test.js`) |
 | 부하 테스트(동시성·무결성) | `scripts/loadtest.js` (`npm run loadtest`) |
+| 프로젝터 송출 뷰 | `public/views/projector.js` (관리자 → 🖥 송출) |
 | 미션/팀/이벤트 데이터 | `data/seed.json` |
 | 에뮬레이터/호스팅 설정 | `firebase.json`, `.firebaserc` |
