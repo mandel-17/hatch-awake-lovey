@@ -26,3 +26,7 @@ test("scanUrl: 특수문자 percent-encoding round-trip", () => {
   assert.equal(u, "https://h/?scan=A%20B");
   assert.equal(extractCode(u), "A B");
 });
+
+test("extractCode: scan 파라미터 없는 URL은 원문 그대로", () => {
+  assert.equal(extractCode("https://kkae.app/?foo=bar"), "https://kkae.app/?foo=bar");
+});

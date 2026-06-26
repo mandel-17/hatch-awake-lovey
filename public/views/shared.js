@@ -15,12 +15,13 @@ export function fmt(n) {
 export function scanUrl(code, origin = (typeof location !== "undefined" ? location.origin : "")) {
   return `${origin}/?scan=${encodeURIComponent(code)}`;
 }
+
 export function extractCode(text) {
   // ?scan=W-OX 링크면 쿼리 파싱, 아니면 원문.
   try {
     const u = new URL(text);
     const q = u.searchParams.get("scan");
-    if (q) return q;
+    if (q !== null) return q;
   } catch (_) {}
   return text;
 }
