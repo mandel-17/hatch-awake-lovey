@@ -45,7 +45,7 @@
 
 ### F. 잔여 UI 폴리시 (일부 완료)
 - ✅ 관리자 **프로젝터 풀스크린 송출 뷰**(`views/projector.js`) — 컨트롤 없이 공동합산+TOP3+부화. 관리자 "🖥 프로젝터 송출" → `ctx.enterProjector()`(구독 유지 뷰 전환, `exitProjector`로 복귀). 부화 연출(#hatch, z-80)이 위로 덮여 함께 송출됨.
-- ⏸️ A4 스테이션 **QR 이미지 생성/인쇄** — 미구현. `qrcode` 벤더링 후 admin 코드 패널에 `?scan=<CODE>` QR 추가(리더 스캐너 extractCode 가 이미 `?scan=` 파싱).
+- ✅ A4 스테이션 **QR 이미지 생성/인쇄** — 완료. `qrcode-generator` 벤더링(`public/vendor/qrcode-generator.js`, 의존성0 단일파일·SVG). admin "스테이션 코드" 패널에 미션별 QR 썸네일 + **"🖨 인쇄용 QR 시트"**(스테이션당 A4 1장, `@media print`). QR 내용 = `${location.origin}/?scan=<CODE>`(리더 스캐너 extractCode 파싱). `scanUrl`/`extractCode` 를 `shared.js` 로 공용화 + round-trip 단위 테스트(`tests/qr.test.js`). **인쇄는 운영 배포 도메인에서** — 에뮬레이터에서 인쇄하면 origin 이 `127.0.0.1:5000` 으로 박힘(앱 내 스캔은 origin 무관). 폰 기본 카메라 딥링크 자동보고는 범위 외(추후 `boot()` 에 `?scan=` 처리 추가 시 확장).
 - ⏸️ **clear 진짜 취소** — 미구현. 현재는 `adminAdjust` 음수 보정. 진짜 undo 는 clear 삭제+감액 트랜잭션 필요(코인 쓰기→함수에서만) → "절대 규칙"·샤딩과 함께 결정 권장.
 
 ---
