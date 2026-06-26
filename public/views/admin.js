@@ -1,5 +1,5 @@
 // 관리자(A) 화면 — 라이브 대시보드 + 코인 입력/가감 + 설정/부화 + 스테이션 코드.
-import { topbarHTML, fmt, esc } from "./shared.js";
+import { topbarHTML, fmt, esc, scanUrl } from "./shared.js";
 
 function timeStr(ts) {
   try {
@@ -7,6 +7,31 @@ function timeStr(ts) {
     if (!d) return "—";
     return d.toLocaleTimeString("ko-KR", { hour12: false });
   } catch (_) { return "—"; }
+}
+
+// 코드 → QR SVG 문자열. window.qrcode(UMD, 벤더링) 사용. 미로드 시 빈 문자열(코드 텍스트로 폴백).
+function qrSvg(code) {
+  const make = (typeof window !== "undefined") && window.qrcode;
+  if (!make) return "";
+  try {
+    const qr = make(0, "M");
+    qr.addData(scanUrl(code));
+    qr.make();
+    // scalable: viewBox만 출력 → 크기는 CSS(.qr-thumb/.qp-qr)가 제어. margin=16(=4모듈 quiet zone).
+    return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true });
+  } catch (_) { return ""; }
+}
+
+// 인쇄 시트: 미션 1개 = .qr-page 1장(월드·미션명·대형 QR·코드·코인·안내).
+function printSheetHTML(missions) {
+  return missions.map((m) => `<section class="qr-page">
+    <div class="qp-world">${esc(m.world)}</div>
+    <div class="qp-name">${esc(m.name)}</div>
+    <div class="qp-qr">${qrSvg(m.code)}</div>
+    <div class="qp-code">${esc(m.code)}</div>
+    <div class="qp-coin">${fmt(m.coins)} 코인</div>
+    <div class="qp-hint">이 QR을 스캔하거나 코드를 입력해 보고하세요</div>
+  </section>`).join("");
 }
 
 export function mount(root, ctx) {
@@ -56,9 +81,13 @@ export function mount(root, ctx) {
      <div class="panel"><h2>🏆 리더보드</h2><div data-leaderboard></div></div>
      <div class="panel"><h2>🧾 최근 적립 로그</h2><div class="log" data-log></div></div>
      <div class="panel"><h2>🏁 스테이션 코드</h2>
-       <div class="note" style="margin-bottom:10px">각 스테이션에 코드를 게시하세요. (인쇄용 QR 생성은 추후)</div>
+       <div class="row" style="margin-bottom:10px">
+         <button class="btn btn-ink" id="print-qr">🖨 인쇄용 QR 시트</button>
+       </div>
+       <div class="note" style="margin-bottom:10px">각 스테이션에 게시하세요. QR을 스캔하거나 코드를 입력해 보고합니다.</div>
        <div data-codes></div>
-     </div>`;
+     </div>
+     <div class="qr-sheet" data-print-sheet></div>`;
 
   root.querySelector("[data-leave]").addEventListener("click", ctx.leave);
 
@@ -76,6 +105,13 @@ export function mount(root, ctx) {
   });
 
   root.querySelector("#projector-btn").addEventListener("click", () => ctx.enterProjector());
+
+  root.querySelector("#print-qr").addEventListener("click", () => {
+    const sheet = root.querySelector("[data-print-sheet]");
+    sheet.replaceChildren();
+    sheet.insertAdjacentHTML("beforeend", printSheetHTML(ctx.state.missions));
+    window.print();
+  });
 
   async function sendPush(title, body) {
     if (!title || !body) { ctx.toast("제목과 내용을 입력하세요.", "err"); return; }
@@ -176,6 +212,7 @@ export function refresh(ctx) {
   const codes = document.querySelector("[data-codes]");
   if (codes && codes.children.length === 0 && ctx.state.missions.length) {
     codes.innerHTML = ctx.state.missions.map((m) => `<div class="mission">
+      <div class="qr-thumb">${qrSvg(m.code)}</div>
       <div class="mn">${esc(m.name)}</div>
       <div class="mc" style="font-size:14px;font-weight:800;color:var(--space)">${esc(m.code)}</div>
       <div class="coin">${fmt(m.coins)}</div>
