@@ -12,7 +12,8 @@
   `joinTeam`(+FCM 토픽 구독) · `submitClear`(결정적 `clearId`·트랜잭션·`increment`·`allowLeaderSubmit` 가드) · `adminAdjust`(+`adjustments` 감사로그) · `triggerHatch`(목표 가드·멱등) · `setConfig` · `setAdmin`(부트스트랩 코드) · `notify`(관리자 토픽 푸시).
 - **클라이언트** — 3역할 화면(`public/views/{admin,leader,member}.js`), 공용 렌더(`shared.js`: communal/eggSVG/leaderboard/checklist/playHatch), 실시간 `onSnapshot` 구독(`app.js`), QR 스캔(`html5-qrcode`), 다크→빛 부화 연출.
 - **FCM + PWA** (이번 빌드 추가) — `fcm.js`(권한·토큰, 로컬/더미선 자동 비활성) → `joinTeam(fcmToken)`; `notify` + 관리자 "📣 푸시 발송" 패널(집결/중간집계/커스텀). `manifest.json` + 단일 `sw.js`(앱셸 캐시 + compat importScripts FCM 백그라운드) + 오리지널 알 아이콘(`public/icons/`). 메시징 SDK는 `firebase@10.14.1`에서 `public/vendor/firebase/`로 벤더링(모듈러 1 + compat 2).
-- **테스트** — 규칙 11/11, 함수 11/11 통과(notify 가드 2건 추가). 브라우저 검증(에뮬레이터+정적서빙): SW 등록·활성, manifest 유효, 모듈 로드, FCM 게이트, 푸시 패널 렌더·`notify` 호출까지 확인. *Playwright 2탭 E2E는 이 빌드에서 재실행 안 함(hosting:5000을 macOS AirPlay가 점유).*
+- **오프라인 큐 + 부하 테스트** (이번 빌드 추가) — `outbox.js`(실패 보고 큐잉·자동 재전송, 단위테스트 8) + Firestore 영속 캐시 → 오프라인 내성. `scripts/loadtest.js` 로 90 동시 부하 측정: **무결성 항상 정확**, 단 `events.total` 단일 핫 필드 경합으로 동시 버스트 처리량 한계 발견(§2 D 참조).
+- **테스트** — 단위 8/8(outbox), 규칙 11/11, 함수 11/11 통과(notify 가드 2건). `npm test` 가 macOS에서도 동작(함수 테스트 hosting 제외). 브라우저 검증: SW 등록·활성, manifest 유효, 모듈 로드, FCM 게이트, 푸시 패널·`notify` 호출, 영속캐시 db로 앱 정상 로드·구독. *Playwright 2탭 E2E는 이 빌드에서 재실행 안 함(hosting:5000 = macOS AirPlay).*
 
 검증 명령: `npm test` / `npm run emu` + `npm run seed`.
 
@@ -26,12 +27,17 @@
 ### ✅ B. PWA — 완료 (이번 빌드)
 `manifest.json`(standalone/theme `#14224D`/아이콘 3) + **단일 `sw.js`**(앱셸 stale-while-revalidate 캐시 + compat importScripts FCM 백그라운드) + `index.html` manifest/apple-touch/PWA 메타 + `public/icons/`(오리지널 알, `scripts/make-icons.js`로 생성, sharp). 별도 `firebase-messaging-sw.js` 대신 `sw.js` 하나로 통합(루트 스코프 충돌 회피, `getToken`에 registration 전달).
 
-### C. 오프라인 큐 + 재시도 — SPEC §11
-- `submitClear` 는 이미 `clearId` 로 멱등이라 재시도 안전. 클라에서 실패한 보고를 `localStorage` 큐에 넣고 온라인 복귀 시 재전송.
-- Firestore 읽기 오프라인 캐시: `initializeFirestore(app,{localCache: persistentLocalCache()})` 로 전환 고려(현재 `getFirestore` 기본).
+### ✅ C. 오프라인 큐 + 재시도 — 완료 (이번 빌드)
+`public/outbox.js`(순수 모듈, 단위테스트 8건 `tests/outbox.test.js`): submitClear 실패가 네트워크/`internal`/`deadline-exceeded` 계열이면 `localStorage`(`kkae.outbox`) 큐잉 + 온라인 복귀·부팅 시 자동 재전송(clearId 멱등 → 중복 안전). 논리 거부(already-exists·not-found·permission-denied)는 큐잉하지 않음. 리더/관리자 보고는 `ctx.reportClear` 경유, 좌하단 "미전송 N건" 뱃지. Firestore 읽기 영속 캐시(`initializeFirestore`+`persistentLocalCache`+멀티탭, IndexedDB 불가 시 자동 폴백).
 
-### D. 부하 테스트 (≈90 동시) — SPEC §11 / BUILD_PLAN Phase 7
-- `scripts/` 에 N개 익명 유저 동시 `submitClear` 부하 스크립트 작성(emulator + 실 프로젝트). `events.total` 정확성·지연 측정. (함수 테스트의 동시성 케이스를 90 스케일로 확장.)
+### ✅ D. 부하 테스트 — 완료 (이번 빌드) · ⚠ 발견
+`scripts/loadtest.js`(`npm run loadtest`; 옵션 `N`·`CONCURRENCY`·`CALL_TIMEOUT`). distinct (팀,미션) 동시 submitClear → **무결성**(`events.total == clears 합계`, 팀 coins == 팀 clears 합) + 처리량·지연 측정.
+- **무결성은 항상 정확**(원자적 increment·clearId 멱등 → 유실/중복 0). 에뮬레이터 측정값:
+  - 버스트 90 동시: 성공 12/90, 지연 p50 15s, 무결성 ✅ (실패는 전부 `deadline-exceeded` — 커밋 안 됨, 코인 오류 아님).
+  - 동시 8(현실적): 성공 84/90, 지연 p50 22ms, 무결성 ✅.
+- **병목**: `events.total` 단일 핫 필드(+팀 문서)에 트랜잭션이 경합 → 동시 버스트가 크면 일부 `functions/internal`/`deadline-exceeded`. 에뮬레이터는 운영 Firestore보다 훨씬 느리다(운영도 단일 문서 지속 쓰기 ~1/s 한계는 존재).
+- **완화**: C 의 아웃박스가 이 실패들을 큐잉·재시도하므로 보고가 결국 모두 적립된다. 현장 보고는 시간에 분산돼 보통 문제없다.
+- **선택지(미적용 — 사용자 결정 필요)**: 동기 버스트가 우려되면 `events.total` 을 **분산 카운터(샤딩)** 로 전환. 단 CLAUDE.md "절대 규칙"(단일 `events.total`)과 충돌하므로 설계 변경 결정이 필요하다.
 
 ### E. 실배포 — README "실배포" 절 참조
 - 원격 컨테이너에선 불가. 실 환경에서 `firebase login` → Blaze 프로젝트 → `public/firebase-init.js` 의 `firebaseConfig` 를 실값으로 교체 → `firebase deploy`.
@@ -92,5 +98,7 @@ npm run seed                   # 시드 (또는 --total=10000 로 부화 데모)
 | FCM 토큰·권한(클라) | `public/fcm.js`, `public/firebase-init.js`(`VAPID_KEY`) |
 | 서비스워커(앱셸+FCM 백그라운드) | `public/sw.js` |
 | PWA 매니페스트·아이콘 | `public/manifest.json`, `public/icons/`, `scripts/make-icons.js` |
+| 오프라인 큐(실패 보고 재시도) | `public/outbox.js` (단위테스트 `tests/outbox.test.js`) |
+| 부하 테스트(동시성·무결성) | `scripts/loadtest.js` (`npm run loadtest`) |
 | 미션/팀/이벤트 데이터 | `data/seed.json` |
 | 에뮬레이터/호스팅 설정 | `firebase.json`, `.firebaserc` |

@@ -96,8 +96,8 @@ export function mount(root, ctx) {
     const teamId = root.querySelector("#m-team").value;
     const code = root.querySelector("#m-mission").value;
     if (!teamId || !code) { ctx.toast("팀과 미션을 선택하세요.", "err"); return; }
-    try { const d = await ctx.call("submitClear", { teamId, missionCode: code }); ctx.toast(`+${d.coins} 코인 적립`, "ok"); }
-    catch (e) { ctx.toast(ctx.mapErr(e), "err"); }
+    try { const d = await ctx.reportClear(teamId, code); ctx.toast(`+${d.coins} 코인 적립`, "ok"); }
+    catch (e) { if (e?.queued) ctx.toast("오프라인 — 대기열에 저장됨", "info"); else ctx.toast(ctx.mapErr(e), "err"); }
   });
 
   root.querySelector("#a-adjust").addEventListener("click", async () => {
