@@ -35,7 +35,7 @@
 - 근거: 두 함수가 round-trip 쌍이고 순수 변환이라 공용 모듈에 두면 단위 테스트로 회귀를 잠근다. leader.js의 스캐너 로직은 그대로.
 
 ### 3.3 관리자 "스테이션 코드" 패널 ([admin.js](../../../public/views/admin.js))
-- `mount()` 마크업: 패널 상단 노트를 **"🖨 인쇄용 QR 시트" 버튼**으로 교체. 문서 끝에 숨겨진 `<div class="qr-sheet" data-print-sheet hidden></div>` 추가.
+- `mount()` 마크업: 패널 상단 노트를 **"🖨 인쇄용 QR 시트" 버튼**으로 교체. 문서 끝에 `<div class="qr-sheet" data-print-sheet></div>` 추가(화면에선 CSS `.qr-sheet{display:none}`로 숨김 — `hidden` 속성보다 specificity 함정 없음). 인쇄 핸들러는 `replaceChildren()`+`insertAdjacentHTML`로 주입(보안 훅의 `innerHTML` 토큰 차단 회피, 기능 동일).
 - `refresh()`의 `data-codes` 렌더(미션 카드): 각 카드에 **작은 QR 썸네일(~64px)** 인라인 추가 — 화면에서 즉시 확인·테스트용. 기존 1회 렌더 가드(`children.length === 0`) 유지.
 - 버튼 핸들러: `state.missions`로 `.qr-page` 페이지들 생성 → `data-print-sheet`에 주입 → `window.print()`.
 
@@ -46,7 +46,7 @@
 
 ### 3.5 인쇄 스타일 ([styles.css](../../../public/styles.css))
 - `@media print`: 화면 UI 숨기고 `.qr-sheet`만 표시(`.app`·토스트·아웃박스 뱃지 `display:none`, `.qr-sheet{display:block}`).
-- 화면 기본: `.qr-sheet[hidden]`은 숨김.
+- 화면 기본: `.qr-sheet{display:none}`으로 숨김(`@media print`에서 `display:block`).
 - QR은 흑백(검정 모듈/흰 배경) 고정 → 흑백 프린터에서도 스캔 보장. 카드 장식은 기존 토큰(`--space` 테두리, Do Hyeon, `--star` 코인색) 재사용. 색 인쇄가 필요한 요소엔 `print-color-adjust: exact`.
 
 ## 4. 검증
