@@ -11,6 +11,20 @@ export function fmt(n) {
   return (n ?? 0).toLocaleString("ko-KR");
 }
 
+// 스테이션 QR ↔ 스캔 코드 변환 (round-trip 쌍). leader 스캐너·admin QR 생성이 공유한다.
+export function scanUrl(code, origin = (typeof location !== "undefined" ? location.origin : "")) {
+  return `${origin}/?scan=${encodeURIComponent(code)}`;
+}
+export function extractCode(text) {
+  // ?scan=W-OX 링크면 쿼리 파싱, 아니면 원문.
+  try {
+    const u = new URL(text);
+    const q = u.searchParams.get("scan");
+    if (q) return q;
+  } catch (_) {}
+  return text;
+}
+
 const ROLE_LABEL = { admin: "관리자", leader: "팀 리더", member: "팀원" };
 // 공통 상단바. data-leave 버튼은 각 뷰의 mount 에서 ctx.leave 로 배선한다.
 export function topbarHTML(role) {
