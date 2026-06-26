@@ -15,7 +15,7 @@ Mario × 에베소서 5:8-10 컨셉의 실시간 멀티기기 미션 게임. 팀
 - **프로젝터 송출**: 관리자 → 🖥 풀스크린 송출 뷰(`views/projector.js`, 컨트롤 없이 공동합산+TOP3+부화)
 - **테스트**: 단위(8, outbox) + 규칙(11) + 함수(11) — 모두 통과. 동시성 부하 테스트 `scripts/loadtest.js`(무결성·지연)
 
-이번 범위에서 **보류**: 실배포, UI 폴리시(QR 이미지·clear 취소; 프로젝터 송출 뷰는 완료). 부하 테스트로 `events.total` 단일 핫 필드의 동시 버스트 처리량 한계를 발견(무결성은 항상 정확, 아웃박스 재시도로 완화) — handoff §2 D. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
+**잔여**: 실배포 실행(준비·런북은 완료 — `DEPLOY.md`), UI 폴리시(QR 이미지·clear 취소; 프로젝터 송출 뷰는 완료). 부하 테스트로 `events.total` 단일 핫 필드의 동시 버스트 처리량 한계를 발견(무결성은 항상 정확, 아웃박스 재시도로 완화) — handoff §2 D. (FCM 실제 전송 검증은 실 Firebase 프로젝트 필요 — 아래 "실배포" 참조)
 
 ## 사전 준비
 - Node 20+ (개발은 Node 22에서 확인) · Java(에뮬레이터 필수) · 의존성 설치:
@@ -50,10 +50,12 @@ firebase.json  .firebaserc  firestore.rules  firestore.indexes.json
 functions/index.js        # 콜러블 — 코인 쓰기의 단일 권한 지점
 public/                   # 클라이언트 (Hosting)
   index.html  app.js  firebase-init.js  styles.css
-  views/{shared,admin,leader,member}.js
-  vendor/                 # 벤더링된 Firebase SDK ESM + html5-qrcode (CDN 차단 대응)
-scripts/seed.js  scripts/grant-admin.js
-data/seed.json  tests/{rules,functions}.test.js
+  fcm.js  sw.js  outbox.js  manifest.json  icons/
+  views/{shared,admin,leader,member,projector}.js
+  vendor/                 # 벤더링된 Firebase SDK ESM(+compat) + html5-qrcode (CDN 차단 대응)
+scripts/{seed,grant-admin,gen-prod-seed,loadtest,make-icons}.js
+data/seed.json  tests/{rules,functions,outbox}.test.js
+DEPLOY.md                 # 실배포 단계별 런북
 ```
 
 ## 실배포 (추후, 사용자 환경에서)
