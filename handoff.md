@@ -4,47 +4,47 @@
 
 ---
 
-## 1. 현재 상태 (이번 빌드에서 완료)
+## 1. 현재 상태 (구현 완료)
 
-**에뮬레이터 우선 / 코드만** 으로 핵심 MVP를 완성하고 전부 검증했다.
+**에뮬레이터 우선 / 코드만** 으로 MVP + FCM 푸시 · PWA · 오프라인 내성 · 부하 테스트 · 실배포 준비 · 프로젝터 송출까지 완성·검증했다(A–F 머지됨, PR #1–#5). 남은 것은 §2 의 잔여 항목과 실 배포뿐.
 
 - **백엔드** — `firestore.rules`(coins/total/clears/adjustments 클라 쓰기 `if false`), Cloud Functions 7종:
   `joinTeam`(+FCM 토픽 구독) · `submitClear`(결정적 `clearId`·트랜잭션·`increment`·`allowLeaderSubmit` 가드) · `adminAdjust`(+`adjustments` 감사로그) · `triggerHatch`(목표 가드·멱등) · `setConfig` · `setAdmin`(부트스트랩 코드) · `notify`(관리자 토픽 푸시).
-- **클라이언트** — 3역할 화면(`public/views/{admin,leader,member}.js`), 공용 렌더(`shared.js`: communal/eggSVG/leaderboard/checklist/playHatch), 실시간 `onSnapshot` 구독(`app.js`), QR 스캔(`html5-qrcode`), 다크→빛 부화 연출.
-- **FCM + PWA** (이번 빌드 추가) — `fcm.js`(권한·토큰, 로컬/더미선 자동 비활성) → `joinTeam(fcmToken)`; `notify` + 관리자 "📣 푸시 발송" 패널(집결/중간집계/커스텀). `manifest.json` + 단일 `sw.js`(앱셸 캐시 + compat importScripts FCM 백그라운드) + 오리지널 알 아이콘(`public/icons/`). 메시징 SDK는 `firebase@10.14.1`에서 `public/vendor/firebase/`로 벤더링(모듈러 1 + compat 2).
-- **오프라인 큐 + 부하 테스트** (이번 빌드 추가) — `outbox.js`(실패 보고 큐잉·자동 재전송, 단위테스트 8) + Firestore 영속 캐시 → 오프라인 내성. `scripts/loadtest.js` 로 90 동시 부하 측정: **무결성 항상 정확**, 단 `events.total` 단일 핫 필드 경합으로 동시 버스트 처리량 한계 발견(§2 D 참조).
+- **클라이언트** — 3역할 화면(`public/views/{admin,leader,member}.js`) + 관리자 **프로젝터 송출 뷰**(`projector.js`), 공용 렌더(`shared.js`: communal/eggSVG/leaderboard/checklist/playHatch), 실시간 `onSnapshot` 구독(`app.js`), QR 스캔(`html5-qrcode`), 다크→빛 부화 연출.
+- **FCM + PWA** — `fcm.js`(권한·토큰, 로컬/더미선 자동 비활성) → `joinTeam(fcmToken)`; `notify` + 관리자 "📣 푸시 발송" 패널(집결/중간집계/커스텀). `manifest.json` + 단일 `sw.js`(앱셸 캐시 + compat importScripts FCM 백그라운드) + 오리지널 알 아이콘(`public/icons/`). 메시징 SDK는 `firebase@10.14.1`에서 `public/vendor/firebase/`로 벤더링(모듈러 1 + compat 2).
+- **오프라인 큐 + 부하 테스트** — `outbox.js`(실패 보고 큐잉·자동 재전송, 단위테스트 8) + Firestore 영속 캐시 → 오프라인 내성. `scripts/loadtest.js` 로 동시 부하 측정: **무결성 항상 정확**, 단 `events.total` 단일 핫 필드 경합으로 동시 버스트 처리량 한계 발견(§2 D 참조).
+- **실배포 준비** — `scripts/gen-prod-seed.js`(팀 코드 랜덤화 → `data/seed.prod.json`), `scripts/seed.js --prod`/`SEED_FILE`(운영 주입), `setAdmin` ADMIN_BOOTSTRAP 시크릿 바인딩(에뮬레이터 조건부), `DEPLOY.md` 단계별 런북.
 - **테스트** — 단위 8/8(outbox), 규칙 11/11, 함수 11/11 통과(notify 가드 2건). `npm test` 가 macOS에서도 동작(함수 테스트 hosting 제외). 브라우저 검증: SW 등록·활성, manifest 유효, 모듈 로드, FCM 게이트, 푸시 패널·`notify` 호출, 영속캐시 db로 앱 정상 로드·구독. *Playwright 2탭 E2E는 이 빌드에서 재실행 안 함(hosting:5000 = macOS AirPlay).*
 
 검증 명령: `npm test` / `npm run emu` + `npm run seed`.
 
 ---
 
-## 2. 보류된 작업 (다음 단계, 우선순위 순)
+## 2. 작업 내역 (A–F) · 잔여
 
-### ✅ A. FCM 푸시 — 완료 (이번 빌드)
+### ✅ A. FCM 푸시 — 완료
 `notify({topic,title,body})`(관리자 전용, `getMessaging().send`) 추가, `joinTeam` 토픽 구독(`subscribeToTopic`, 토큰 있을 때만·try/catch 로 입장 비차단) 활성화, 클라 `fcm.js`(`getToken({vapidKey, serviceWorkerRegistration})`, 로컬/더미선 자동 비활성) + 관리자 "📣 푸시 발송" 패널(집결/중간집계/커스텀). 메시징 SDK 벤더링 완료(모듈러 `firebase-messaging.js` + compat 2종). **실제 전송은 실 프로젝트 필요** — `README.md`의 "FCM 푸시 + PWA 활성화 체크리스트"(실 config 두 곳 + VAPID) 참조.
 
-### ✅ B. PWA — 완료 (이번 빌드)
+### ✅ B. PWA — 완료
 `manifest.json`(standalone/theme `#14224D`/아이콘 3) + **단일 `sw.js`**(앱셸 stale-while-revalidate 캐시 + compat importScripts FCM 백그라운드) + `index.html` manifest/apple-touch/PWA 메타 + `public/icons/`(오리지널 알, `scripts/make-icons.js`로 생성, sharp). 별도 `firebase-messaging-sw.js` 대신 `sw.js` 하나로 통합(루트 스코프 충돌 회피, `getToken`에 registration 전달).
 
-### ✅ C. 오프라인 큐 + 재시도 — 완료 (이번 빌드)
+### ✅ C. 오프라인 큐 + 재시도 — 완료
 `public/outbox.js`(순수 모듈, 단위테스트 8건 `tests/outbox.test.js`): submitClear 실패가 네트워크/`internal`/`deadline-exceeded` 계열이면 `localStorage`(`kkae.outbox`) 큐잉 + 온라인 복귀·부팅 시 자동 재전송(clearId 멱등 → 중복 안전). 논리 거부(already-exists·not-found·permission-denied)는 큐잉하지 않음. 리더/관리자 보고는 `ctx.reportClear` 경유, 좌하단 "미전송 N건" 뱃지. Firestore 읽기 영속 캐시(`initializeFirestore`+`persistentLocalCache`+멀티탭, IndexedDB 불가 시 자동 폴백).
 
-### ✅ D. 부하 테스트 — 완료 (이번 빌드) · ⚠ 발견
+### ✅ D. 부하 테스트 — 완료 · ⚠ 발견
 `scripts/loadtest.js`(`npm run loadtest`; 옵션 `N`·`CONCURRENCY`·`CALL_TIMEOUT`). distinct (팀,미션) 동시 submitClear → **무결성**(`events.total == clears 합계`, 팀 coins == 팀 clears 합) + 처리량·지연 측정.
 - **무결성은 항상 정확**(원자적 increment·clearId 멱등 → 유실/중복 0). 에뮬레이터 측정값:
   - 버스트 90 동시: 성공 12/90, 지연 p50 15s, 무결성 ✅ (실패는 전부 `deadline-exceeded` — 커밋 안 됨, 코인 오류 아님).
   - 동시 8(현실적): 성공 84/90, 지연 p50 22ms, 무결성 ✅.
 - **병목**: `events.total` 단일 핫 필드(+팀 문서)에 트랜잭션이 경합 → 동시 버스트가 크면 일부 `functions/internal`/`deadline-exceeded`. 에뮬레이터는 운영 Firestore보다 훨씬 느리다(운영도 단일 문서 지속 쓰기 ~1/s 한계는 존재).
 - **완화**: C 의 아웃박스가 이 실패들을 큐잉·재시도하므로 보고가 결국 모두 적립된다. 현장 보고는 시간에 분산돼 보통 문제없다.
-- **선택지(미적용 — 사용자 결정 필요)**: 동기 버스트가 우려되면 `events.total` 을 **분산 카운터(샤딩)** 로 전환. 단 CLAUDE.md "절대 규칙"(단일 `events.total`)과 충돌하므로 설계 변경 결정이 필요하다.
+- **결정: 단일 필드 유지(샤딩 미적용)** — 실제 writer 는 리더+관리자 ~12명(팀원은 조회만)이라 동기 버스트 상한이 낮고, 아웃박스 재시도 + 무결성 보장으로 충분. 샤딩은 과설계로 판단(사용자 결정 2026-06-26). 지속 고빈도 쓰기가 필요해지면 그때 분산 카운터 재검토. CLAUDE.md "절대 규칙"(단일 `events.total`)과 일치.
 
-### E. 실배포 — README "실배포" 절 참조
-- 원격 컨테이너에선 불가. 실 환경에서 `firebase login` → Blaze 프로젝트 → `public/firebase-init.js` 의 `firebaseConfig` 를 실값으로 교체 → `firebase deploy`.
-- 운영 시: 팀 코드 랜덤화(`data/seed.json`), `ADMIN_BOOTSTRAP` 를 시크릿으로 설정, `seed.json` 의 `startsAt/endsAt` 실제 일시 입력.
+### ✅ E. 실배포 준비 — 완료 (도구·런북)
+`DEPLOY.md` 단계별 런북(프로젝트 연결·FCM/PWA·시크릿·운영 시드·배포·스모크 점검). `scripts/gen-prod-seed.js`(팀 코드 랜덤화 + 행사 시간 → `data/seed.prod.json`, gitignore), `scripts/seed.js --prod`/`SEED_FILE`(운영 주입, 기본 동작 불변), `setAdmin` 의 `ADMIN_BOOTSTRAP` Functions 시크릿 바인딩(`FUNCTIONS_EMULATOR` 시 선언 생략 → 에뮬레이터 안전). **실제 배포·푸시 전송은 실 Firebase 프로젝트에서** — DEPLOY.md 절차대로.
 
 ### F. 잔여 UI 폴리시 (일부 완료)
-- ✅ 관리자 **프로젝터 풀스크린 송출 뷰**(`views/projector.js`, 이번 빌드) — 컨트롤 없이 공동합산+TOP3+부화. 관리자 "🖥 프로젝터 송출" → `ctx.enterProjector()`(구독 유지 뷰 전환, `exitProjector`로 복귀). 부화 연출(#hatch, z-80)이 위로 덮여 함께 송출됨.
+- ✅ 관리자 **프로젝터 풀스크린 송출 뷰**(`views/projector.js`) — 컨트롤 없이 공동합산+TOP3+부화. 관리자 "🖥 프로젝터 송출" → `ctx.enterProjector()`(구독 유지 뷰 전환, `exitProjector`로 복귀). 부화 연출(#hatch, z-80)이 위로 덮여 함께 송출됨.
 - ⏸️ A4 스테이션 **QR 이미지 생성/인쇄** — 미구현. `qrcode` 벤더링 후 admin 코드 패널에 `?scan=<CODE>` QR 추가(리더 스캐너 extractCode 가 이미 `?scan=` 파싱).
 - ⏸️ **clear 진짜 취소** — 미구현. 현재는 `adminAdjust` 음수 보정. 진짜 undo 는 clear 삭제+감액 트랜잭션 필요(코인 쓰기→함수에서만) → "절대 규칙"·샤딩과 함께 결정 권장.
 
@@ -55,7 +55,7 @@
 - **기능 프로토타입 부재**: 문서가 전제한 `prototype.html`(렌더 함수 포팅 대상)은 저장소에 없었음. 정적 `kkae-style-tile.html`(디자인 타일)만 존재 → 클라이언트를 **신규 구현**. 타일 CSS 는 `public/styles.css` 로 이관, 타일은 `public/prototype.html` 로 보존.
 - **CDN 차단**: 프록시가 `www.gstatic.com`·`cdn.jsdelivr.net` 차단. 그래서 Firebase SDK ESM 과 html5-qrcode 를 **`public/vendor/` 로 벤더링**(npm 패키지에서 복사). 벤더된 firebase 모듈의 gstatic 절대 import 는 `./firebase-app.js` 상대경로로 치환함. **새 SDK 모듈 추가 시 같은 치환 필요.** (Google Fonts 의 `fonts.googleapis.com`/`fonts.gstatic.com` 은 허용됨.)
 - **Node 22**: functions 런타임을 22 로 고정(컨테이너 일치). `firebase-functions` 버전이 "outdated" 경고를 내지만 v2 API 정상 동작.
-- **admin 인증**: `setAdmin({bootstrapCode})` 콜러블(env `ADMIN_BOOTSTRAP`, 기본 `KKAE-ADMIN`). 클레임 부여 후 클라가 `getIdToken(true)` 로 갱신해야 반영됨. 테스트/로컬용 `scripts/grant-admin.js <uid>` 도 있음.
+- **admin 인증**: `setAdmin({bootstrapCode})` 콜러블. 운영은 `ADMIN_BOOTSTRAP` Functions 시크릿(코드가 `FUNCTIONS_EMULATOR` 일 때만 시크릿 선언 생략 → 에뮬레이터 디스커버리 타임아웃 회피), 에뮬레이터/미설정은 기본 `KKAE-ADMIN` 폴백. 클레임 부여 후 클라가 `getIdToken(true)` 로 갱신해야 반영됨. 테스트/로컬용 `scripts/grant-admin.js <uid>` 도 있음.
 - **`adjustments` 컬렉션**: SPEC §4 엔 없던 추가 스키마(수동 가감 감사·취소용). read 는 관리자만, write 는 함수만.
 - **`members` 쓰기**: 규칙은 SPEC 대로 owner 허용이지만, MVP 는 `joinTeam` 함수 경로로 일원화(재입장 멱등, memberCount 정확).
 
@@ -76,8 +76,8 @@
 ## 5. 빠른 검증 (회귀 확인용)
 
 ```bash
-npm test                       # 규칙 11 + 함수 9
-npm run emu                    # 에뮬레이터
+npm test                       # 단위 8 + 규칙 11 + 함수 11 (hosting 제외)
+npm run emu                    # 에뮬레이터 (Java 필요 — §4)
 npm run seed                   # 시드 (또는 --total=10000 로 부화 데모)
 # http://127.0.0.1:5000  · 관리자 PIN KKAE-ADMIN · 팀 TEAM1~12
 ```
@@ -101,5 +101,6 @@ npm run seed                   # 시드 (또는 --total=10000 로 부화 데모)
 | 오프라인 큐(실패 보고 재시도) | `public/outbox.js` (단위테스트 `tests/outbox.test.js`) |
 | 부하 테스트(동시성·무결성) | `scripts/loadtest.js` (`npm run loadtest`) |
 | 프로젝터 송출 뷰 | `public/views/projector.js` (관리자 → 🖥 송출) |
+| 실배포 준비(운영 시드·런북) | `scripts/gen-prod-seed.js`, `scripts/seed.js --prod`, `DEPLOY.md` |
 | 미션/팀/이벤트 데이터 | `data/seed.json` |
 | 에뮬레이터/호스팅 설정 | `firebase.json`, `.firebaserc` |
