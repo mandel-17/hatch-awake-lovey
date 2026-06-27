@@ -40,7 +40,9 @@ SEED_FILE=data/seed.prod.json GCLOUD_PROJECT=<project-id> \
 
 ## 5. 배포
 ```bash
-firebase deploy --only firestore:rules,functions,hosting
+# 신규 프로젝트면 먼저 빌드 SA 권한 부여(아래 함정 ②). functions 디스커버리 타임아웃은 60s로(함정 ①).
+FUNCTIONS_DISCOVERY_TIMEOUT=60 \
+  firebase deploy --only firestore:rules,functions,hosting
 ```
 
 ## 6. 배포 후 스모크 점검
@@ -61,3 +63,12 @@ N=12 npm run loadtest     # 현실적 동시성(팀 수)에서 무결성·지연
 ## 주의
 - **events.total 단일 핫 필드**: 동시 버스트가 크면 처리량 한계(handoff §2 D). 보고는 시간에 분산되고 아웃박스가 재시도하므로 보통 문제없으나, 전원이 같은 순간 보고하는 상황이 우려되면 분산 카운터(샤딩) 검토.
 - 비용: 1회·90명 규모는 Blaze 무료 한도 내 수준.
+
+## 함정 (2026-06 실배포 기록)
+신규 GCP 프로젝트 첫 배포에서 순서대로 겪은 3가지. 다음 배포자 참고.
+
+1. **Functions 디스커버리 10s 타임아웃** — `setAdmin` 의 `secrets:["ADMIN_BOOTSTRAP"]` 선언 경로에서 `"Cannot determine backend specification. Timeout after 10000"`. 모듈 로드는 빠른데(≈0.2s) 디스커버리만 초과. → 배포 시 `FUNCTIONS_DISCOVERY_TIMEOUT=60` 환경변수.
+2. **빌드 서비스계정 권한 없음** — 새 프로젝트의 compute 기본 SA(`<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`)에 Cloud Build Builder 역할이 자동 부여되지 않아 `"Build failed ... missing permission on the build service account"`. → 콘솔 IAM → 해당 SA에 `roles/cloudbuild.builds.builder`(Cloud Build 서비스 계정) 1회 부여(또는 `gcloud projects add-iam-policy-binding <project> --member=serviceAccount:<num>-compute@developer.gserviceaccount.com --role=roles/cloudbuild.builds.builder`).
+3. **callable 함수 Cloud Run invoker 누락** — 함정 ②로 한 함수가 부분 생성된 뒤 다음 배포가 그 함수를 *update* 처리하며 `allUsers` invoker 미설정 → 그 함수만 `401 Unauthorized`(Cloud Run GFE, 함수 코드 도달 전). → 해당 함수 `firebase functions:delete <fn> --force` 후 재배포(fresh create). **IAM 전파에 수분 걸리니 바로 401이어도 잠시 후 재확인.**
+
+> 시드는 서비스계정 키 없이 **로그인된 세션 / Firebase MCP의 Firestore 쓰기**로도 주입 가능(owner 자격 → 보안 규칙 우회). 키 다운로드를 피하려면 이 경로 사용. 운영 데이터로 라이브 스모크를 돌렸다면 `event.total`·팀 `coins`·`memberCount` 0으로, 테스트 `clears/`·`members/` 삭제로 **pristine 복구**할 것.
