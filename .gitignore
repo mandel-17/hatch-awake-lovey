@@ -7,3 +7,9 @@ firestore-debug.log
 ui-debug.log
 .firebase/
 data/seed.prod.json
+
+# 서비스 계정 키 / 시크릿 — 절대 커밋 금지
+*firebase-adminsdk*.json
+*serviceAccount*.json
+*service-account*.json
+.secrets/
