@@ -11,15 +11,15 @@ import {
 } from "./vendor/firebase/firebase-firestore.js";
 import { getFunctions, connectFunctionsEmulator } from "./vendor/firebase/firebase-functions.js";
 
-// 에뮬레이터/데모 프로젝트라 실 키는 필요 없다(값은 더미).
-// ⚠️ 실 배포(FCM 사용) 시: 아래 firebaseConfig 를 실 프로젝트 값으로 통째 교체하고
-//    (messagingSenderId·appId 포함), public/sw.js 의 동일 config 도 함께 교체할 것.
+// 실 프로젝트 config (hatch-awake-lovey). 웹 apiKey 는 공개값(시크릿 아님) — 커밋 안전.
+// ⚠️ 변경 시 public/sw.js 의 동일 firebaseConfig 도 함께 갱신할 것(SW 는 모듈 import 불가).
 export const firebaseConfig = {
-  projectId: "demo-kkae",
-  apiKey: "demo-key",
-  authDomain: "demo-kkae.firebaseapp.com",
-  // messagingSenderId: "…",  // FCM 필수 (실 배포 시 채움)
-  // appId: "…",              // FCM 필수 (실 배포 시 채움)
+  apiKey: "AIzaSyAOY4ouNDnbsNXPZhAAxpPd12bhEeXoq1I",
+  authDomain: "hatch-awake-lovey.firebaseapp.com",
+  projectId: "hatch-awake-lovey",
+  storageBucket: "hatch-awake-lovey.firebasestorage.app",
+  messagingSenderId: "67931948915",
+  appId: "1:67931948915:web:54aed3233e17ea6b2fe706",
 };
 
 // 웹 푸시 VAPID 키. ⚠️ 실 배포 시 Firebase Console > 프로젝트 설정 > 클라우드 메시징 >

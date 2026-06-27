@@ -5,10 +5,12 @@
  * ⚠️ 실 배포 시: firebase-init.js 의 firebaseConfig 와 동일한 실값으로 교체할 것.
  */
 const firebaseConfig = {
-  projectId: "demo-kkae",
-  apiKey: "demo-key",
-  authDomain: "demo-kkae.firebaseapp.com",
-  // messagingSenderId, appId — 실 배포 시 채움 (FCM 필수)
+  apiKey: "AIzaSyAOY4ouNDnbsNXPZhAAxpPd12bhEeXoq1I",
+  authDomain: "hatch-awake-lovey.firebaseapp.com",
+  projectId: "hatch-awake-lovey",
+  storageBucket: "hatch-awake-lovey.firebasestorage.app",
+  messagingSenderId: "67931948915",
+  appId: "1:67931948915:web:54aed3233e17ea6b2fe706",
 };
 
 // --- FCM 백그라운드 수신 (config 가 실값일 때만 동작; 더미/미설정이면 catch 로 무시) ---

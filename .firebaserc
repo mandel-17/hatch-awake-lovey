@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-kkae"
+    "default": "hatch-awake-lovey",
+    "emu": "demo-kkae"
   }
 }
